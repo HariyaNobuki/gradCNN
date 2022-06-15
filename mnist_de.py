@@ -1,5 +1,8 @@
 import tensorflow as tf
 import os , sys
+from keras import models   
+from keras.utils import np_utils
+from keras.layers import Conv2D,MaxPooling2D,Dropout,Dense,Flatten,Activation,BatchNormalization
 from keras.callbacks import TensorBoard
 from keras.callbacks import ModelCheckpoint
 from keras.callbacks import EarlyStopping
@@ -14,18 +17,27 @@ from keras.callbacks import ReduceLROnPlateau
 mnist = tf.keras.datasets.mnist
  
 (x_train, y_train),(x_test, y_test) = mnist.load_data()
+
+x_train = x_train.reshape((60000, 28, 28, 1))
+x_test = x_test.reshape((10000, 28, 28, 1))
+x_train = x_train.astype('float32')
+x_test = x_test.astype('float32')
 x_train, x_test = x_train / 255.0, x_test / 255.0
- 
-model = tf.keras.models.Sequential([
-  tf.keras.layers.Flatten(input_shape=(28, 28)),
-  tf.keras.layers.Dense(128, activation='relu'),
-  tf.keras.layers.Dropout(0.2),
-  tf.keras.layers.Dense(10, activation='softmax')
-])
- 
+y_train = np_utils.to_categorical(y_train, 10)
+y_test = np_utils.to_categorical(y_test, 10)
+
+model = models.Sequential()
+model.add(Conv2D(32, (3, 3), input_shape=(28, 28, 1), activation='relu', name="conv1"))
+model.add(MaxPooling2D((2, 2)))
+model.add(Conv2D(64, (3, 3), activation='relu',name="last_Conv"))
+model.add(MaxPooling2D((2, 2)))
+model.add(Flatten())
+model.add(Dense(10, activation='softmax', name="output"))
+model.summary()
+
 model.compile(optimizer='adam',
-              loss='sparse_categorical_crossentropy',
-              metrics=['accuracy'])
+              loss='categorical_crossentropy',
+              metrics='accuracy')
 model.fit(x_train,y_train,
             batch_size=256,
             epochs=100,
@@ -53,9 +65,9 @@ model.fit(x_train,y_train,
                 save_best_only=True,
                 save_weights_only=False,
             ),
-            TensorBoard(
-                log_dir='MNIST',
-            ),
+            #TensorBoard(
+            #    log_dir='MNIST',
+            #),
             ]
             )
 

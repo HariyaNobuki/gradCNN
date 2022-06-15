@@ -16,6 +16,8 @@ Adapted from Deep Learning with Python (2017).
 import numpy as np
 import tensorflow as tf
 from tensorflow import keras
+import os , sys
+from keras.preprocessing.image import load_img,  img_to_array, array_to_img
 
 # Display
 #from IPython.display import Image, display
@@ -104,15 +106,36 @@ def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None
 ## Let's test-drive it
 """
 def getCNNpredict():
-    model =  keras.models.load_model("demodel/Link1_x_0.h5", compile=False)
+    model =  keras.models.load_model("demodel/MNIST.h5", compile=False)
     return model
+def img_show(img):
+    pil_img = Image.fromarray(np.uint8(img))
+    pil_img.show()
 
+mnist = tf.keras.datasets.mnist
+ 
+(x_train, y_train),(x_test, y_test) = mnist.load_data()
+print(y_train[0])
+img = Image.fromarray(np.uint8(x_train[0]))
+img.save('demodel/x_train.png')
+#x_train, x_test = x_train / 255.0, x_test / 255.0
 
+#num = 4
+#for i in range(num):
+#    img_show(x_train[i].reshape(28, 28))
 
 # Prepare image
-imgpath = "demodel/Arm_0.jpg"
-img_array = preprocess_input(get_img_array(img_path, size=img_size))
+#imgpath = "demodel/x_train.png"
+#img_array = preprocess_input(get_img_array(img_path, size=(28, 28, 1)))
+def preprocess():
+    img = load_img("demodel/x_train.png",
+                    grayscale=True, target_size=(28, 28))
+    array = img_to_array(img)
+    array /= 255
+    img_array = np.array([array])
+    return img_array
 
+img_array = preprocess()
 # Make model
 #model = model_builder(weights="imagenet")
 model = getCNNpredict()
@@ -122,13 +145,14 @@ model.layers[-1].activation = None
 
 # Print what the top predicted class is
 preds = model.predict(img_array)        # (1,1000)
-print("Predicted:", decode_predictions(preds, top=1)[0])    # 上位一つを出力
-result = decode_predictions(preds, top=5)
-print(result)
+#print("Predicted:", decode_predictions(preds, top=1)[0])    # 上位一つを出力
+#result = decode_predictions(preds, top=5)
+#print(result)
 
 # Generate class activation heatmap
 heatmap = make_gradcam_heatmap(img_array, model, last_conv_layer_name)
-
+img = Image.fromarray(np.uint8(heatmap))
+img.save('mnist_pic.png')
 # Display heatmap
 plt.matshow(heatmap)
 plt.show()
