@@ -103,19 +103,28 @@ def make_gradcam_heatmap(img_array, model, last_conv_layer_name, pred_index=None
 """
 ## Let's test-drive it
 """
+def getCNNpredict():
+    model =  keras.models.load_model("demodel/Link1_x_0.h5", compile=False)
+    return model
+
+
 
 # Prepare image
+imgpath = "demodel/Arm_0.jpg"
 img_array = preprocess_input(get_img_array(img_path, size=img_size))
 
 # Make model
-model = model_builder(weights="imagenet")
+#model = model_builder(weights="imagenet")
+model = getCNNpredict()
 
 # Remove last layer's softmax
 model.layers[-1].activation = None
 
 # Print what the top predicted class is
-preds = model.predict(img_array)
-print("Predicted:", decode_predictions(preds, top=1)[0])
+preds = model.predict(img_array)        # (1,1000)
+print("Predicted:", decode_predictions(preds, top=1)[0])    # 上位一つを出力
+result = decode_predictions(preds, top=5)
+print(result)
 
 # Generate class activation heatmap
 heatmap = make_gradcam_heatmap(img_array, model, last_conv_layer_name)
@@ -139,7 +148,7 @@ def save_and_display_gradcam(img_path, heatmap, cam_path="cam.jpg", alpha=0.4):
     heatmap = np.uint8(255 * heatmap)
 
     # Use jet colormap to colorize heatmap
-    jet = cm.get_cmap("jet")
+    jet = cm.get_cmap("jet")        # cmap : colormap
 
     # Use RGB values of the colormap
     jet_colors = jet(np.arange(256))[:, :3]
@@ -178,7 +187,7 @@ img_path = keras.utils.get_file(
     "https://storage.googleapis.com/petbacker/images/blog/2017/dog-and-cat-cover.jpg",
 )
 
-display(Image(img_path))
+#display(Image(img_path))
 
 # Prepare image
 img_array = preprocess_input(get_img_array(img_path, size=img_size))

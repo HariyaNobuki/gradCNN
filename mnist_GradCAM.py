@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 import matplotlib.pyplot as plt
 import cv2
-from mnist_cnn import mnist_show
+
 
 def grad_cam(input_model, x, layer_name):
     """
@@ -81,7 +81,7 @@ def main():
         output, class_idx = grad_cam(new_model,x_test[FIG_NO], 'conv')
         plt.imshow(output)
         fig_gradcam.savefig("Grad-CAM.png")
-        mnist_show(x_test[FIG_NO])
+        #mnist_show(x_test[FIG_NO])
         print(f"the prediction is {class_idx}.")
         print(f"the answer is {y_test[FIG_NO]}.")
         print("the input image has been stored as \"Grad-CAM.png\"")
