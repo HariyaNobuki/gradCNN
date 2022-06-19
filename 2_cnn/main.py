@@ -24,5 +24,6 @@ if __name__ == '__main__':
             os.makedirs("2_1_CNN_RES/{}/trial_{}".format(Mode_name,trial),exist_ok=True)
 
     CNN = deeplearning.DeepLearnig(cnf)
+    CNN.targetsize(224)
     CNN.DL_main()
 

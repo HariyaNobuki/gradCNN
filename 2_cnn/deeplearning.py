@@ -6,6 +6,7 @@ import matplotlib
 import numpy as np
 import pandas as pd
 import copy
+import  cv2
 from tqdm import tqdm
 import shutil       # file copy module??(I will select program)
 
@@ -15,6 +16,7 @@ import cnnmodel
 # option info tensorflow == 2.5.0
 
 # keras py -3.6 ver 2.4.3
+from keras.preprocessing.image import load_img, save_img, img_to_array, array_to_img
 from keras.preprocessing.image import load_img,  img_to_array, array_to_img
 from keras import regularizers
 
@@ -28,6 +30,7 @@ from keras.callbacks import ModelCheckpoint
 from keras.callbacks import EarlyStopping
 from keras.callbacks import LearningRateScheduler
 from keras.callbacks import ReduceLROnPlateau
+from keras.utils import np_utils        # class categorical ??
 
 class DeepLearnig:
     # コンストラクタ
@@ -50,8 +53,8 @@ class DeepLearnig:
         self.y_test = []
 
         self.target_size_Original = self.cnf.target_size_Original
-        self.image_shape = (self.target_size_Original,self.target_size_Original,3)
-        self.regression = 1
+        self.image_shape = (self.targetsize,1)
+        self.regression = 2
 
         self.Link1_x_predict = []
         self.Link1_y_predict = []
@@ -66,16 +69,17 @@ class DeepLearnig:
     def DLsettings(self,CNN_object,trial):
         self.CNN_object = CNN_object
         self.trial = trial
-        self.y_train = self.df_csv_train["{}".format(CNN_object)]
+
+        self.y_train = np_utils.to_categorical(self.y_train, 2)
 
         # model setting
         self.ModelSetting()
         self.LRSetting()
-        self.model.compile(optimizer=self.optimizer_alpha, loss='mse', metrics=['mae']) 
+        self.model.compile(optimizer=self.optimizer_alpha, loss='categorical_crossentropy', metrics=['accuracy']) 
         self.history = self.model.fit(self.x_train,self.y_train,
                                         batch_size=self.cnf.batch_size,
                                         epochs=self.cnf.maxepochs,
-                                        validation_split=0.2,
+                                        validation_split=0.0,
                                         verbose = self.cnf.verbose,
                                         shuffle=self.cnf.shuffle,
                                         callbacks= [
@@ -105,50 +109,57 @@ class DeepLearnig:
                                         ]
                                         )
 
-
-        self.predict_test = self.model.predict(self.x_test,verbose=1)
-        self.predict = []
-        for i in range(self.cnf.test_data_num):
-            self.predict.append(self.predict_test[i,0])
-
-        self.y_test = self.df_csv_test["{}".format(CNN_object)]
-        if(CNN_object in self.cnf.angle_mode):
-            self.y_test = np.rad2deg(self.y_test)
+        self.model.save("baum.h5")
+        #self.predict_test = self.model.predict(self.x_test,verbose=1)
+        #self.predict = []
+        #for i in range(self.cnf.test_data_num):
+        #    self.predict.append(self.predict_test[i,0])
+#
+        #self.y_test = self.df_csv_test["{}".format(CNN_object)]
+        #if(CNN_object in self.cnf.angle_mode):
+        #    self.y_test = np.rad2deg(self.y_test)
         
-        df_test = pd.DataFrame()
-        df_test["real"] = self.y_test
-        df_test["predict"] = self.predict
-        df_test.to_csv("2_1_CNN_RES/{}/trial_{}/DL_predict_{}.csv".format(CNN_object,trial,CNN_object))
+        #df_test = pd.DataFrame()
+        #df_test["real"] = self.y_test
+        #df_test["predict"] = self.predict
+        #df_test.to_csv("2_1_CNN_RES/{}/trial_{}/DL_predict_{}.csv".format(CNN_object,trial,CNN_object))
 
         self.history_anarysis(self.history)
 
     def set_dataset(self):
-        os.chdir("RobotInfo")
-        ###train_data###
-        self.df_csv_train = pd.read_csv("train_data.csv")
-        self.df_csv_test = pd.read_csv("test_data.csv")
-        os.chdir("..")
+        self.y_train = np.array([0 for i in range(self.cnf.train_data_num)] + [1 for i in range(self.cnf.test_data_num)])
+        self.y_test = np.array([1 for i in range(self.cnf.test_data_num)])
+
+    def targetsize(self,dpi):
+        im = cv2.imread('submit/a/0.bmp')  # <class 'numpy.ndarray'>
+        #print(im.shape)     # <tuple>
+        assert dpi < im.shape[0] , "you choice too big dpi for comparing original pic size (%d->%d)"%(dpi , im.shape[0])
+        aspect = im.shape[1] / im.shape[0]
+        self.targetsize = int(dpi),int(dpi*aspect),1
+        #img = load_img('submit/a/0.bmp', grayscale=False, color_mode='rgb', target_size=(int(dpi),int(dpi*aspect)))
+        #i2ary = img_to_array(img)
+        #save_img(image_save_dir+ "{}.bmp".format(dpi), i2ary)
 
 
     def preprocess(self):
-        os.chdir("RobotSimulation")
+        os.chdir("submit")
         ###train_data###
-        os.chdir("train")
+        os.chdir("a")
         self.x_train = np.array([])
         self.x_train_storage = np.array([])     # storage
         print("===train_data_preprocess===")
         split_count = 0
         for i in tqdm(range(self.cnf.train_data_num)):
             if self.x_train_storage.shape == (0,):
-                img = load_img('Arm_{}.jpg'.format(i),
-                                grayscale=self.cnf.GRAYSCALE, color_mode="rgb", target_size=(self.cnf.target_size_Original,self.cnf.target_size_Original))
+                img = load_img('{}.bmp'.format(i),
+                                grayscale=self.cnf.GRAYSCALE, color_mode='grayscale', target_size=self.targetsize)
                 array = img_to_array(img)
                 array /= 255
                 self.x_train_storage = np.array([array])
                 split_count += 1
             else:
-                img = load_img('Arm_{}.jpg'.format(i),
-                                grayscale=self.cnf.GRAYSCALE, color_mode="rgb", target_size=(self.cnf.target_size_Original,self.cnf.target_size_Original))
+                img = load_img('{}.bmp'.format(i),
+                                grayscale=self.cnf.GRAYSCALE, color_mode='grayscale', target_size=self.targetsize)
                 array = img_to_array(img)
                 array /= 255
                 self.x_train_storage = np.append(self.x_train_storage,np.array([array]),axis=0)
@@ -164,27 +175,37 @@ class DeepLearnig:
 
         os.chdir("..")
         ###test data####
-        plt.imshow(self.x_train[1])
+        plt.imshow(self.x_train[1],cmap = "gray")
         plt.savefig("targer_size_checker.png")
         plt.clf()
         plt.close()
 
-        os.chdir("test")
-        self.x_test = np.array([])
-        print("===test_data_preprocess===")
+        os.chdir("b")
+        print("===train_data_preprocess===")
+        split_count = 0
         for i in tqdm(range(self.cnf.test_data_num)):
-            if i==0:
-                img = load_img('Arm_{}.jpg'.format(i),
-                                 grayscale=self.cnf.GRAYSCALE,color_mode="rgb", target_size=(self.cnf.target_size_Original,self.cnf.target_size_Original))
+            if self.x_train_storage.shape == (0,):
+                img = load_img('{}.bmp'.format(i),
+                                grayscale=self.cnf.GRAYSCALE, color_mode='grayscale', target_size=self.targetsize)
                 array = img_to_array(img)
                 array /= 255
-                self.x_test = np.array([array])
+                self.x_train_storage = np.array([array])
+                split_count += 1
             else:
-                img = load_img('Arm_{}.jpg'.format(i),
-                                grayscale=self.cnf.GRAYSCALE,color_mode="rgb", target_size=(self.cnf.target_size_Original,self.cnf.target_size_Original))
+                img = load_img('{}.bmp'.format(i),
+                                grayscale=self.cnf.GRAYSCALE, color_mode='grayscale', target_size=self.targetsize)
                 array = img_to_array(img)
                 array /= 255
-                self.x_test = np.append(self.x_test,np.array([array]),axis=0)
+                self.x_train_storage = np.append(self.x_train_storage,np.array([array]),axis=0)
+                split_count += 1
+            
+            if (split_count == self.cnf.split) or (i == self.cnf.train_data_num-1):
+                split_count = 0
+                if self.x_train.shape == (0,):
+                    self.x_train = self.x_train_storage
+                else:
+                    self.x_train = np.concatenate([self.x_train , self.x_train_storage])
+                self.x_train_storage = np.array([])
         os.chdir("..")
         os.chdir("..")
 
@@ -192,8 +213,7 @@ class DeepLearnig:
     
     def DL_main(self):
         print("===This is Deep Learning seccion===")
-        image_shape = (self.target_size_Original,self.target_size_Original,3)
-        regression = 1                                                              # 回帰を表現
+        image_shape = (self.targetsize,1)
 
         self.main_path = os.getcwd()
         self.set_dataset()
@@ -214,19 +234,19 @@ class DeepLearnig:
             self.extract_best_model()
             self.copy_model()
         # angle mode
-        for CNN_object in self.cnf.angle_mode:
-            print("###{}###".format(CNN_object))
-
-            self.optimizer = self.cnf.optimizer
-            print("===optimizer : {}===".format(self.optimizer))
-
-            self.EachAdaption_list = []
-            self.mintrial = 0       # df trial
-            for trial in range(self.cnf.CNN_trial):
-                self.cnf.reset_seed(trial)      # set random seed
-                self.DLsettings(CNN_object,trial)
-            self.extract_best_model()
-            self.copy_model()
+        #for CNN_object in self.cnf.angle_mode:
+        #    print("###{}###".format(CNN_object))
+#
+        #    self.optimizer = self.cnf.optimizer
+        #    print("===optimizer : {}===".format(self.optimizer))
+#
+        #    self.EachAdaption_list = []
+        #    self.mintrial = 0       # df trial
+        #    for trial in range(self.cnf.CNN_trial):
+        #        self.cnf.reset_seed(trial)      # set random seed
+        #        self.DLsettings(CNN_object,trial)
+        #    self.extract_best_model()
+        #    self.copy_model()
 
         print("current directory\t:\t",os.getcwd())
     
@@ -235,17 +255,17 @@ class DeepLearnig:
         # loss -> mse
         self.history_in_mode = history
         loss = self.history_in_mode.history["loss"]
-        val_loss= self.history_in_mode.history["val_loss"]
-        mae= self.history_in_mode.history["mae"]
-        val_mae= self.history_in_mode.history["val_mae"]
+        #val_loss= self.history_in_mode.history["val_loss"]
+        accuracy= self.history_in_mode.history["accuracy"]
+        #val_accuracy= self.history_in_mode.history["val_accuracy"]
 
-        self.EachAdaption_list.append(val_loss[-1])
+        #self.EachAdaption_list.append(val_loss[-1])
 
         epochs = range(1,len(loss) + 1)
         # loss(MSE) learning curb
         fig1 = plt.figure()
         plt.plot(epochs , loss , color = "orange",marker = "o",ms = 2,lw = 0.1, label = "training loss")
-        plt.plot(epochs , val_loss , color = "blue",marker = "o",ms = 2,lw = 0.1, label = "validation loss")
+        #plt.plot(epochs , val_loss , color = "blue",marker = "o",ms = 2,lw = 0.1, label = "validation loss")
         plt.xlabel("Epochs")
         plt.ylabel("Loss")
         plt.yscale("log")
@@ -254,15 +274,15 @@ class DeepLearnig:
         plt.clf()
         plt.close()
 
-        # mae learning curb
+        # accuracy learning curb
         fig2 = plt.figure()
-        plt.plot(epochs , mae , color = "orange",marker = "o",ms = 2,lw = 0.1, label = "training mae")
-        plt.plot(epochs , val_mae , color = "blue",marker = "o",ms = 2,lw = 0.1, label = "validation mae")
+        plt.plot(epochs , accuracy , color = "orange",marker = "o",ms = 2,lw = 0.1, label = "training accuracy")
+        #plt.plot(epochs , val_accuracy , color = "blue",marker = "o",ms = 2,lw = 0.1, label = "validation accuracy")
         plt.xlabel("Epochs")
-        plt.ylabel("mae")
+        plt.ylabel("accuracy")
         plt.yscale("log")
         plt.legend()
-        fig2.savefig("2_1_CNN_RES/{}/trial_{}/mae.png".format(self.CNN_object,self.trial))
+        fig2.savefig("2_1_CNN_RES/{}/trial_{}/accuracy.png".format(self.CNN_object,self.trial))
         plt.clf()
         plt.close()
 
@@ -270,9 +290,9 @@ class DeepLearnig:
         df_lrcurb = pd.DataFrame()
         df_lrcurb["epochs"] = epochs
         df_lrcurb["loss"] = loss
-        df_lrcurb["val_loss"] = val_loss
-        df_lrcurb["mae"] = loss
-        df_lrcurb["val_mae"] = val_loss
+        #df_lrcurb["val_loss"] = val_loss
+        df_lrcurb["accuracy"] = loss
+        #df_lrcurb["val_accuracy"] = val_loss
         df_lrcurb.to_csv("2_1_CNN_RES/{}/trial_{}/learningcurb.csv".format(self.CNN_object,self.trial))
 
 
@@ -293,14 +313,10 @@ class DeepLearnig:
 
     def ModelSetting(self):
         if(self.cnf.machine == "CPU"):
-            self.model = cnnmodel.Model_CPU(self.image_shape,self.regression)
+            self.model = cnnmodel.baumtest(self.targetsize,self.regression)
         elif(self.cnf.machine == "GPU"):
-            if(self.CNN_object == "Link1_angle"):
-                self.model = cnnmodel.Model_GPU(self.image_shape,self.regression)
-            elif(self.CNN_object == "Link2_angle"):
-                self.model = cnnmodel.Model_GPU(self.image_shape,self.regression)
-            else:
-                self.model = cnnmodel.Model_GPU(self.image_shape,self.regression)
+            self.model = cnnmodel.baumtest(self.targetsize,self.regression)
+
 
     def LRSetting(self):
         if(self.optimizer == "Adagrad"):

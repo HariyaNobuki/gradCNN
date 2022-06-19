@@ -103,3 +103,14 @@ def Model_CPU(input_shape,num_classes):
     model.add(Dense(1, activation = "linear"))
 
     return model
+
+def baumtest(input_shape,num_classes):
+    model = models.Sequential()
+    model.add(Conv2D(32, (3, 3), input_shape=input_shape, activation='relu', name="conv1"))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Conv2D(64, (3, 3), activation='relu',name="last_Conv"))
+    model.add(MaxPooling2D((2, 2)))
+    model.add(Flatten())
+    model.add(Dense(num_classes, activation='softmax', name="output"))
+    model.summary()
+    return model

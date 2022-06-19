@@ -37,7 +37,6 @@ img_rows, img_cols = 224,168
 
 for name in baumlist:
     for i in range(numdata):
-        #--- ここから qiita
         import numpy as np
         def preprocess(name,i):
             img = load_img("submit/{}/{}.bmp".format(name,i),
@@ -57,7 +56,6 @@ for name in baumlist:
         print(conv_layer.output.shape)
 
         flatten_layer = model.get_layer("flatten")
-        #flatten_layer = model.get_layer("Flatten")  # 名前を付けていないので自動でついた名前を使用
         print(flatten_layer.input.shape)
         print(flatten_layer.output.shape)
 
@@ -73,34 +71,27 @@ for name in baumlist:
         #plt.show()
 
 
-        input_val = img_array[0]  # 入力値 shape=()
+        input_val = img_array[0]
         print(input_val.shape)
-        # 予測結果を出す
         prediction = model.predict(np.asarray([input_val]), 1)[0]
         prediction_idx = np.argmax(prediction)
 
         print(prediction)
         print(np.argmax(prediction))
 
-        # loss は出力先の結果
         loss = model.get_layer("output").output[0][prediction_idx]
 
-        # variables は入力層
         variables = model.input
 
-        # 勾配
         grads = K.gradients(loss, variables)[0]
         grads_func = K.function([model.input, K.learning_phase()], [grads])
 
-        # 結果を取得
         values = grads_func([np.asarray([input_val]), 0])
         values = values[0]
 
-        img = values[0]             # (1,28,28,1) -> (28,28,1)
-        img = img.reshape((img.shape[0],img.shape[1]))  # (28,28,1) -> (28,28)
-        img = np.abs(img)           # 絶対値
-
-        # 表示
+        img = values[0]
+        img = img.reshape((img.shape[0],img.shape[1]))
+        img = np.abs(img)
         plt.imshow(img, cmap='gray')
         plt.savefig(savepath + "output.png")
         plt.clf()
@@ -109,9 +100,8 @@ for name in baumlist:
 
         # grad cam
         conv_layer_output = model.get_layer("last_Conv").output
-        input_val = img_array[0]  # 入力値 shape=(28,28,1)
+        input_val = img_array[0]
 
-        # 予測結果を出す
         prediction = model.predict(np.asarray([input_val]), 1)[0]
         prediction_idx = np.argmax(prediction)
         loss = model.get_layer("output").output[0][prediction_idx]
@@ -120,30 +110,25 @@ for name in baumlist:
         grads_func = K.function([model.input, K.learning_phase()], [conv_layer_output, grads])
 
         (conv_output, conv_values) = grads_func([np.asarray([input_val]), 0])
-        conv_output = conv_output[0]  # (24, 24, 64)
-        conv_values = conv_values[0]  # (24, 24, 64)
+        conv_output = conv_output[0]
+        conv_values = conv_values[0]
 
-        weights = np.mean(conv_values, axis=(0, 1))  # 勾配の平均をとる
-        cam = np.dot(conv_output, weights)           # 出力結果と重さの内積をとる
+        weights = np.mean(conv_values, axis=(0, 1))
+        cam = np.dot(conv_output, weights)         
 
         import cv2
         cam = cv2.resize(cam, (168,224), cv2.INTER_LINEAR)
         cam = np.maximum(cam, 0)
         cam = cam / cam.max()
 
-        # モノクロ画像に疑似的に色をつける
         cam = cv2.applyColorMap(np.uint8(255 * cam), cv2.COLORMAP_JET)
 
-        # オリジナルイメージもカラー化
-        #org_img = cv2.cvtColor(np.uint8(img_array[0]), cv2.COLOR_GRAY2BGR)  # (w,h) -> (w,h,3)
-        org_img = cv2.cvtColor(np.uint8(img_array[0]), cv2.COLOR_GRAY2BGR)  # (w,h) -> (w,h,3)
+        org_img = cv2.cvtColor(np.uint8(img_array[0]), cv2.COLOR_GRAY2BGR)
 
-        # 合成
         rate = 0.4
         cam = cv2.addWeighted(src1=org_img, alpha=(1-rate), src2=cam, beta=rate, gamma=0)
-        cam = cv2.cvtColor(cam, cv2.COLOR_BGR2RGB)  # 色をRGBに変換
+        cam = cv2.cvtColor(cam, cv2.COLOR_BGR2RGB) 
 
-        # 表示
         plt.imshow(cam)
         plt.savefig(savepath + "cam.png")
         plt.clf()
