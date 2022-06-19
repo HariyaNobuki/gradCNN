@@ -13,12 +13,13 @@ class Configuration:
         print("###configuration###")
         self.startpath = os.getcwd()
         self.problem = "random"
-        self.ALL_mode = ["Link1_x","Link1_y","Link2_x","Link2_y"]       # object for cnn ex) 研究の対象：an object of study
+        self.ALL_mode = ["baum"]       # object for cnn ex) 研究の対象：an object of study
         self.angle_mode = ["Link1_angle","Link2_angle"]
         matplotlib.use("Agg")   # memory flash
     
     def setProblemenvironment(self):
-        self.train_data_num = 10
+        self.train_data_num = 45
+        self.test_data_num = 45
         self.problem = "circle"
         # simulation environment??
         if self.problem == "circle":
@@ -60,12 +61,12 @@ class Configuration:
         self.CNN_trial = 3
         self.target_size_Original = 112
         self.optimizer = "Adam"
-        self.maxepochs = 3
+        self.maxepochs = 300
         self.batch_size = 32
         self.validation_split = 0.2
         self.verbose = 1
         self.shuffle = True
-        self.GRAYSCALE = False
+        self.GRAYSCALE = True
         self.verbose = 1
 
         self.split = 2      # under train dataset size
