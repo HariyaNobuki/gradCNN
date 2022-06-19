@@ -109,20 +109,7 @@ class DeepLearnig:
                                         ]
                                         )
 
-        self.model.save("baum.h5")
-        #self.predict_test = self.model.predict(self.x_test,verbose=1)
-        #self.predict = []
-        #for i in range(self.cnf.test_data_num):
-        #    self.predict.append(self.predict_test[i,0])
-#
-        #self.y_test = self.df_csv_test["{}".format(CNN_object)]
-        #if(CNN_object in self.cnf.angle_mode):
-        #    self.y_test = np.rad2deg(self.y_test)
-        
-        #df_test = pd.DataFrame()
-        #df_test["real"] = self.y_test
-        #df_test["predict"] = self.predict
-        #df_test.to_csv("2_1_CNN_RES/{}/trial_{}/DL_predict_{}.csv".format(CNN_object,trial,CNN_object))
+        self.model.save("demodel/baum.h5")
 
         self.history_anarysis(self.history)
 
@@ -233,20 +220,7 @@ class DeepLearnig:
                 self.DLsettings(CNN_object,trial)
             self.extract_best_model()
             self.copy_model()
-        # angle mode
-        #for CNN_object in self.cnf.angle_mode:
-        #    print("###{}###".format(CNN_object))
-#
-        #    self.optimizer = self.cnf.optimizer
-        #    print("===optimizer : {}===".format(self.optimizer))
-#
-        #    self.EachAdaption_list = []
-        #    self.mintrial = 0       # df trial
-        #    for trial in range(self.cnf.CNN_trial):
-        #        self.cnf.reset_seed(trial)      # set random seed
-        #        self.DLsettings(CNN_object,trial)
-        #    self.extract_best_model()
-        #    self.copy_model()
+
 
         print("current directory\t:\t",os.getcwd())
     
